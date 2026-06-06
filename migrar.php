@@ -1,35 +1,50 @@
 <?php
-// Buscamos las variables en todos los rincones posibles
-$host = getenv('MYSQLHOST') ?: $_ENV['MYSQLHOST'] ?? 'localhost';
-$port = getenv('MYSQLPORT') ?: $_ENV['MYSQLPORT'] ?? '3306';
-$user = getenv('MYSQLUSER') ?: $_ENV['MYSQLUSER'] ?? 'root';
-$pass = getenv('MYSQLPASSWORD') ?: $_ENV['MYSQLPASSWORD'] ?? '';
+// 1. Obtener los datos reales de la nube
+$host = getenv('MYSQLHOST') ?: 'localhost';
+$port = getenv('MYSQLPORT') ?: '3306';
+$user = getenv('MYSQLUSER') ?: 'root';
+$pass = getenv('MYSQLPASSWORD') ?: '';
+$dbname = getenv('MYSQLDATABASE') ?: 'railway';
 
-// ¡EL FIX ESTÁ AQUÍ! Forzamos el nombre de la nube
-$dbname = 'railway'; 
 if ($host === 'localhost') {
-    $dbname = 'sistema_asistencia'; // Solo usa este nombre si estás en XAMPP
+    $dbname = 'sistema_asistencia';
 }
 
-$mysqli = new mysqli($host, $user, $pass, $dbname, $port);
+// 2. Conectar al servidor
+$mysqli = new mysqli($host, $user, $pass, '', $port);
 
 if ($mysqli->connect_error) {
-    die("<h1 style='color:red; text-align:center; margin-top:50px;'>Error de conexión: " . $mysqli->connect_error . "</h1>");
+    die("<h1 style='color:red;'>Error de conexión: " . $mysqli->connect_error . "</h1>");
+}
+
+// 3. Seleccionar la base de datos explícitamente
+if (!$mysqli->select_db($dbname)) {
+    die("<h1 style='color:red;'>Error: No se encontró la BD '$dbname'. Detalle: " . $mysqli->error . "</h1>");
 }
 
 $archivo_sql = 'sistema_asistencia.sql'; 
 
 if (!file_exists($archivo_sql)) {
-    die("<h1 style='color:red; text-align:center;'>Error: No encuentro el archivo $archivo_sql</h1>");
+    die("<h1 style='color:red;'>Error: No encuentro el archivo $archivo_sql</h1>");
 }
 
 $sql = file_get_contents($archivo_sql);
 
-// Limpiamos la basura que deja phpMyAdmin
-$sql = preg_replace('/CREATE DATABASE[^;]+;/i', '', $sql);
-$sql = preg_replace('/USE[^;]+;/i', '', $sql);
+// 4. Limpieza Extrema: Borramos línea por línea la configuración de tu PC
+$lineas = explode("\n", $sql);
+$sql_limpio = "";
+foreach ($lineas as $linea) {
+    $linea_limpia = trim($linea);
+    if (stripos($linea_limpia, 'CREATE DATABASE') === 0) continue;
+    if (stripos($linea_limpia, 'USE ') === 0) continue;
+    $sql_limpio .= $linea . "\n";
+}
 
-if ($mysqli->multi_query($sql)) {
+// 5. EL FIX DE ORO: Le ordenamos a MySQL que use tu BD de Railway
+$sql_final = "USE `$dbname`;\n" . $sql_limpio;
+
+// 6. Ejecutar todo de un solo golpe
+if ($mysqli->multi_query($sql_final)) {
     do {
         if ($result = $mysqli->store_result()) {
             $result->free();

@@ -1,26 +1,33 @@
 <?php
-// 1. Obtener los datos reales de la nube
-$host = getenv('MYSQLHOST') ?: 'localhost';
-$port = getenv('MYSQLPORT') ?: '3306';
-$user = getenv('MYSQLUSER') ?: 'root';
-$pass = getenv('MYSQLPASSWORD') ?: '';
-$dbname = getenv('MYSQLDATABASE') ?: 'railway';
+// 1. Variables sin corchetes para evitar errores de sintaxis
+$host = getenv('MYSQLHOST');
+if ($host == false) { $host = 'localhost'; }
+
+$port = getenv('MYSQLPORT');
+if ($port == false) { $port = '3306'; }
+
+$user = getenv('MYSQLUSER');
+if ($user == false) { $user = 'root'; }
+
+$pass = getenv('MYSQLPASSWORD');
+if ($pass == false) { $pass = ''; }
+
+$dbname = getenv('MYSQLDATABASE');
+if ($dbname == false) { $dbname = 'railway'; }
 
 if ($host === 'localhost') {
     $dbname = 'sistema_asistencia';
 }
 
-// 2. Conectar al servidor
+// 2. Conexión directa
 $mysqli = new mysqli($host, $user, $pass, '', $port);
 
 if ($mysqli->connect_error) {
-    die("<h1 style='color:red;'>Error de conexión: " . $mysqli->connect_error . "</h1>");
+    die("<h1 style='color:red;'>Error de conexion: " . $mysqli->connect_error . "</h1>");
 }
 
-// 3. Seleccionar la base de datos explícitamente
-if (!$mysqli->select_db($dbname)) {
-    die("<h1 style='color:red;'>Error: No se encontró la BD '$dbname'. Detalle: " . $mysqli->error . "</h1>");
-}
+// 3. Forzar seleccion de Base de Datos
+$mysqli->select_db($dbname);
 
 $archivo_sql = 'sistema_asistencia.sql'; 
 
@@ -30,7 +37,7 @@ if (!file_exists($archivo_sql)) {
 
 $sql = file_get_contents($archivo_sql);
 
-// 4. Limpieza Extrema: Borramos línea por línea la configuración de tu PC
+// 4. Limpieza del archivo
 $lineas = explode("\n", $sql);
 $sql_limpio = "";
 foreach ($lineas as $linea) {
@@ -40,27 +47,16 @@ foreach ($lineas as $linea) {
     $sql_limpio .= $linea . "\n";
 }
 
-// 5. EL FIX DE ORO: Le ordenamos a MySQL que use tu BD de Railway
-$sql_final = "USE `$dbname`;\n" . $sql_limpio;
-
-// 6. Ejecutar todo de un solo golpe
-if ($mysqli->multi_query($sql_final)) {
-    do {
-        if ($result = $mysqli->store_result()) {
-            $result->free();
-        }
-    } while ($mysqli->more_results() && $mysqli->next_result());
-    
-    echo "<div style='background-color:#d1fae5; border-radius:10px; padding:30px; max-width:600px; margin:50px auto; border: 2px solid #10b981; font-family:sans-serif;'>";
-    echo "<h1 style='color:#047857; text-align:center; margin:0;'>¡MIGRACIÓN EXITOSA! 🚀</h1>";
-    echo "<p style='text-align:center; color:#065f46; font-size:18px;'>Las tablas se inyectaron perfectamente en la nube.</p>";
-    echo "<p style='text-align:center;'><a href='index.php' style='background:#10b981; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;'>Ir al Sistema</a></p>";
+// 5. Inyectar datos a Railway
+if ($mysqli->multi_query($sql_limpio)) {
+    echo "<div style='background-color:#d1fae5; padding:30px; border-radius:10px; max-width:500px; margin:50px auto; text-align:center; font-family:sans-serif;'>";
+    echo "<h1 style='color:#047857;'>¡MIGRACIÓN EXITOSA!</h1>";
+    echo "<p style='color:#065f46;'>Tu sistema está listo para usarse.</p>";
+    echo "<a href='index.php' style='background:#10b981; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Entrar al Sistema</a>";
     echo "</div>";
 } else {
-    echo "<div style='background-color:#fee2e2; border-radius:10px; padding:30px; max-width:600px; margin:50px auto; border: 2px solid #ef4444; font-family:sans-serif;'>";
-    echo "<h1 style='color:#b91c1c; text-align:center; margin:0;'>Error en el código SQL</h1>";
-    echo "<p style='text-align:center; color:#7f1d1d;'>Detalle: " . $mysqli->error . "</p>";
-    echo "</div>";
+    echo "<h1 style='color:red; text-align:center;'>Error SQL</h1>";
+    echo "<p style='text-align:center;'>" . $mysqli->error . "</p>";
 }
 
 $mysqli->close();

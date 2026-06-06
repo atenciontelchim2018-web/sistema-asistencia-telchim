@@ -1,19 +1,19 @@
 <?php
-// Detecta automáticamente cualquier formato de variable de Railway, o usa XAMPP si estás en tu PC
-$host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost';
-$port = getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: '3306';
-$dbname = getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'sistema_asistencia';
-$user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root';
-$pass = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '';
+$host = getenv('MYSQLHOST') ?: 'localhost';
+$port = getenv('MYSQLPORT') ?: '3306';
+$user = getenv('MYSQLUSER') ?: 'root';
+$pass = getenv('MYSQLPASSWORD') ?: '';
+$dbname = getenv('MYSQLDATABASE') ?: 'sistema_asistencia';
+
+// Si está en Railway, el nombre de la BD por defecto siempre es 'railway'
+if (getenv('MYSQLHOST')) {
+    $dbname = 'railway';
+}
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass);
-    
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
-    die("Error crítico de conexión: " . $e->getMessage());
+    die("Error de conexión: " . $e->getMessage());
 }
 ?>

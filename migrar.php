@@ -1,32 +1,25 @@
 <?php
-// 1. Variables sin corchetes para evitar errores de sintaxis
-$host = getenv('MYSQLHOST');
-if ($host == false) { $host = 'localhost'; }
+// 1. LA LLAVE MAESTRA: Pega tu contraseña de Railway entre las comillas
+$pass = 'hfZTZytMHrnHfCrvJjxAFIdffLSFWZkM'; 
 
-$port = getenv('MYSQLPORT');
-if ($port == false) { $port = '3306'; }
+// 2. Intentamos jalar los demás datos del servidor
+$host = $_SERVER['MYSQLHOST'] ?? getenv('MYSQLHOST') ?? 'localhost';
+$port = $_SERVER['MYSQLPORT'] ?? getenv('MYSQLPORT') ?? '3306';
+$user = $_SERVER['MYSQLUSER'] ?? getenv('MYSQLUSER') ?? 'root';
+$dbname = 'railway';
 
-$user = getenv('MYSQLUSER');
-if ($user == false) { $user = 'root'; }
-
-$pass = getenv('MYSQLPASSWORD');
-if ($pass == false) { $pass = ''; }
-
-$dbname = getenv('MYSQLDATABASE');
-if ($dbname == false) { $dbname = 'railway'; }
-
+// Si estás probando en tu PC (XAMPP), ajustamos automático
 if ($host === 'localhost') {
     $dbname = 'sistema_asistencia';
+    $pass = ''; 
 }
 
-// 2. Conexión directa
 $mysqli = new mysqli($host, $user, $pass, '', $port);
 
 if ($mysqli->connect_error) {
     die("<h1 style='color:red;'>Error de conexion: " . $mysqli->connect_error . "</h1>");
 }
 
-// 3. Forzar seleccion de Base de Datos
 $mysqli->select_db($dbname);
 
 $archivo_sql = 'sistema_asistencia.sql'; 
@@ -37,7 +30,7 @@ if (!file_exists($archivo_sql)) {
 
 $sql = file_get_contents($archivo_sql);
 
-// 4. Limpieza del archivo
+// Limpiamos los comandos basura de phpMyAdmin
 $lineas = explode("\n", $sql);
 $sql_limpio = "";
 foreach ($lineas as $linea) {
@@ -47,12 +40,12 @@ foreach ($lineas as $linea) {
     $sql_limpio .= $linea . "\n";
 }
 
-// 5. Inyectar datos a Railway
+// Inyectamos todas las tablas
 if ($mysqli->multi_query($sql_limpio)) {
     echo "<div style='background-color:#d1fae5; padding:30px; border-radius:10px; max-width:500px; margin:50px auto; text-align:center; font-family:sans-serif;'>";
-    echo "<h1 style='color:#047857;'>¡MIGRACIÓN EXITOSA!</h1>";
-    echo "<p style='color:#065f46;'>Tu sistema está listo para usarse.</p>";
-    echo "<a href='index.php' style='background:#10b981; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Entrar al Sistema</a>";
+    echo "<h1 style='color:#047857;'>¡MIGRACIÓN EXITOSA! 🚀</h1>";
+    echo "<p style='color:#065f46;'>Tu base de datos se inyectó perfectamente.</p>";
+    echo "<a href='index.php' style='background:#10b981; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;'>Ir al Sistema</a>";
     echo "</div>";
 } else {
     echo "<h1 style='color:red; text-align:center;'>Error SQL</h1>";
